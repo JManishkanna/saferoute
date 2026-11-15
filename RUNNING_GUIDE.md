@@ -260,7 +260,7 @@ Then:
 
 ```bash
 cd frontend
-npm ci
+npm install
 npm run build
 ```
 
@@ -347,3 +347,8 @@ This starter currently includes account registration/login, report creation/list
 ## Animation and interaction updates
 
 The frontend now includes scroll-triggered reveal transitions, staggered report rows, a gently animated hero/orbit illustration, interactive hover lift and glow effects for cards, animated navigation underlines, button sheen feedback, form focus transitions, and page-entry motion. These effects are written in CSS and the browser Intersection Observer API, so no animation package or additional dependency is required. The interface also respects the operating system **Reduce motion** accessibility preference.
+
+
+## JavaScript frontend
+
+The frontend uses JavaScript and JSX (not TypeScript). The Vite production build runs with `npm run build` and does not require a TypeScript compiler. For Vercel, set the project root to `frontend`, the build command to `npm run build`, and the output directory to `dist`. The included `vercel.json` provides SPA fallback routing for React Router.
