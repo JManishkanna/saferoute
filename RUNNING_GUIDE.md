@@ -1,189 +1,108 @@
-# SafeRoute – Running Guide
+# SafeRoute – Supabase Running Guide
 
-This guide explains how to run the project locally and prepare it for deployment.
+This guide configures SafeRoute to use Supabase PostgreSQL instead of MongoDB Atlas. The React frontend still talks to the Spring Boot API; database credentials remain server-side.
 
 ## 1. Prerequisites
-
-Install the following:
 
 | Tool | Recommended version |
 |---|---|
 | Java JDK | 21 |
 | Maven | 3.9+ |
 | Node.js | 20 LTS or newer |
-| npm | Included with Node |
-| MongoDB | 7+ or MongoDB Atlas |
 | Git | Latest |
+| Supabase | A project with PostgreSQL |
 
-Check installations:
+## 2. Create your Supabase database
 
-```bash
-java -version
-mvn -version
-node -v
-npm -v
-```
+1. Open [Supabase](https://supabase.com/) and create a new project.
+2. Choose a strong database password and save it securely.
+3. Wait until the project finishes provisioning.
+4. Open **SQL Editor -> New query**.
+5. Open `backend/database/supabase-schema.sql` from this repository, copy its full contents, paste it into the SQL Editor, and click **Run**.
+6. Open **Project Settings -> Database -> Connect**.
+7. Choose **Session pooler** and copy the connection details. The session pooler is suitable for a long-running Spring Boot server. Use the host, port, database, username and password supplied by Supabase.
 
-## 2. Database setup
-
-### Option A: Local MongoDB
-
-Install and start MongoDB Community Server. The default connection string used by the backend is:
-
-```text
-mongodb://localhost:27017/saferoute
-```
-
-### Option B: MongoDB Atlas
-
-1. Create a MongoDB Atlas project and cluster.
-2. Create a database user with a strong password.
-3. Configure Network Access. For development, allow your current IP address.
-4. Copy the connection string.
-5. Replace the username, password, and database name as appropriate.
-
-Example:
-
-```text
-mongodb+srv://USERNAME:PASSWORD@cluster.example.mongodb.net/saferoute?retryWrites=true&w=majority
-```
-
-Do not commit real database credentials to GitHub.
+Do not use the Supabase `anon` key or `service_role` key as a JDBC password. This application connects to PostgreSQL directly from the backend.
 
 ## 3. Configure the backend
 
-Open a terminal:
+From PowerShell:
 
-```bash
-cd SafeRoute/backend
-```
-
-Copy the example environment file:
-
-**Windows PowerShell**
 ```powershell
+cd SafeRoute\backend
 Copy-Item .env.example .env
 ```
 
-**macOS / Linux**
-```bash
-cp .env.example .env
+Edit `backend/.env` with your actual Supabase session-pooler values. Example format (replace every placeholder with the values from your Supabase dashboard):
+
+```env
+SUPABASE_JDBC_URL=jdbc:postgresql://YOUR_POOLER_HOST:5432/postgres?sslmode=require
+SUPABASE_DB_USER=postgres.YOUR_PROJECT_REF
+SUPABASE_DB_PASSWORD=YOUR_DATABASE_PASSWORD
+JWT_SECRET=replace-with-a-long-random-secret-at-least-32-bytes
+CORS_ORIGINS=http://localhost:5173
+SERVER_PORT=8080
 ```
 
-Set these environment variables in your terminal or IDE run configuration:
-
-| Variable | Example |
-|---|---|
-| `MONGODB_URI` | `mongodb://localhost:27017/saferoute` |
-| `JWT_SECRET` | Long random secret, 32+ bytes |
-| `CORS_ORIGINS` | `http://localhost:5173` |
-| `SERVER_PORT` | `8080` |
-
-The `.env` file is a reference file; Spring Boot does not automatically load it. Either export the variables in your shell or configure them in your IDE. For quick local testing, the defaults in `application.yml` work with local MongoDB, but replace the JWT secret before use.
+The exact pooler host and username are project-specific. Keep `sslmode=require`. The sample `.env` file is not automatically loaded by Spring Boot; set these variables in your shell, IDE run configuration, or deployment provider.
 
 ### Windows PowerShell example
 
 ```powershell
-$env:MONGODB_URI="mongodb://localhost:27017/saferoute"
+$env:SUPABASE_JDBC_URL="jdbc:postgresql://YOUR_POOLER_HOST:5432/postgres?sslmode=require"
+$env:SUPABASE_DB_USER="postgres.YOUR_PROJECT_REF"
+$env:SUPABASE_DB_PASSWORD="YOUR_DATABASE_PASSWORD"
 $env:JWT_SECRET="replace-this-with-a-long-random-secret-at-least-32-bytes"
 $env:CORS_ORIGINS="http://localhost:5173"
 mvn spring-boot:run
 ```
 
-### macOS / Linux example
+The backend starts at `http://localhost:8080`. Check `http://localhost:8080/actuator/health`.
 
-```bash
-export MONGODB_URI="mongodb://localhost:27017/saferoute"
-export JWT_SECRET="replace-this-with-a-long-random-secret-at-least-32-bytes"
-export CORS_ORIGINS="http://localhost:5173"
-mvn spring-boot:run
-```
+## 4. Run the frontend
 
-The backend starts at:
+Open a second PowerShell terminal:
 
-```text
-http://localhost:8080
-```
-
-Health check:
-
-```text
-http://localhost:8080/actuator/health
-```
-
-## 4. Configure and run the frontend
-
-Open a second terminal:
-
-```bash
-cd SafeRoute/frontend
-npm install
-```
-
-Create the local environment file:
-
-**Windows PowerShell**
 ```powershell
+cd SafeRoute\frontend
+npm install
 Copy-Item .env.example .env
+npm run dev
 ```
 
-**macOS / Linux**
-```bash
-cp .env.example .env
-```
-
-The default value is:
+The default frontend API URL is:
 
 ```env
 VITE_API_BASE_URL=http://localhost:8080/api/v1
 ```
 
-Start Vite:
-
-```bash
-npm run dev
-```
-
-Open:
-
-```text
-http://localhost:5173
-```
+Open http://localhost:5173.
 
 ## 5. First-time use
 
-1. Open the website.
-2. Select **Create account** and register.
-3. Log in.
-4. Use **Report hazard** to create a report.
-5. Add a title, description, hazard type, severity, and latitude/longitude.
-6. Open the map to see reports.
-7. Use the nearby reports feature by entering a latitude and longitude.
+1. Register a user from the website.
+2. Log in.
+3. Create a road hazard report with title, description, category, severity and coordinates.
+4. Browse reports and use nearby search.
+5. Open the Tamil Nadu map to view reports.
 
-For a quick Chennai test location, you can use:
-- Latitude: `13.0827`
-- Longitude: `80.2707`
+For a Chennai test location, use latitude `13.0827` and longitude `80.2707`.
 
-Use real observations only. Do not create misleading public hazard reports.
+## 6. Promote an admin account
 
-## 6. Admin access for local development
+Register a normal account first. In Supabase **SQL Editor**, run this query with the email used during registration:
 
-The project does not ship with a default admin user.
-
-For local development only, register a normal account, then update its role in MongoDB:
-
-```javascript
-db.users.updateOne(
-  { email: "your-email@example.com" },
-  { $set: { role: "ADMIN" } }
-)
+```sql
+update public.users
+set role = 'ADMIN'
+where email = lower('your-email@example.com');
 ```
 
-Log out and log in again so the new role is included in the newly issued JWT.
-
-Never expose direct database access or allow public users to change their own role. In a production system, role changes must be performed through a protected, audited administrative process.
+Log out and log in again so the new role is included in the JWT. Never let public users change their own role.
 
 ## 7. API examples
+
+The API routes remain unchanged after the database migration.
 
 ### Register
 
@@ -201,24 +120,6 @@ curl -X POST http://localhost:8080/api/v1/auth/login \
   -d '{"email":"demo@example.com","password":"ChangeMe123!"}'
 ```
 
-The response contains a JWT token. Use it as a Bearer token for protected requests.
-
-### Create report
-
-```bash
-curl -X POST http://localhost:8080/api/v1/reports \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title":"Pothole near junction",
-    "description":"Large pothole reported by a commuter",
-    "category":"POTHOLE",
-    "severity":"HIGH",
-    "latitude":13.0827,
-    "longitude":80.2707
-  }'
-```
-
 ### List reports
 
 ```bash
@@ -231,124 +132,77 @@ curl "http://localhost:8080/api/v1/reports?page=0&size=20"
 curl "http://localhost:8080/api/v1/reports/nearby?latitude=13.0827&longitude=80.2707&radiusMeters=5000"
 ```
 
-### Admin: verify report
-
-```bash
-curl -X PATCH http://localhost:8080/api/v1/admin/reports/REPORT_ID/verify \
-  -H "Authorization: Bearer ADMIN_TOKEN"
-```
-
 ## 8. Build for production
 
-### Backend
+Backend:
 
-```bash
+```powershell
 cd backend
 mvn clean package
-java -jar target/saferoute-backend-1.0.0.jar
 ```
 
-### Frontend
+Frontend:
 
-Set the production API URL in Vercel environment variables:
-
-```env
-VITE_API_BASE_URL=https://YOUR_BACKEND_HOST/api/v1
-```
-
-Then:
-
-```bash
+```powershell
 cd frontend
 npm install
 npm run build
 ```
 
-The production build is generated in `frontend/dist`.
+The frontend production output is `frontend/dist`.
 
-## 9. Deployment outline
+## 9. Deploy
 
-### MongoDB Atlas
-- Create a production database user.
-- Restrict network access to the backend provider where possible.
-- Enable backups.
-- Never expose the connection string to the browser.
+### Backend
 
-### Spring Boot backend
-- Deploy `backend` to Render, Railway, Fly.io, or another Java-compatible host.
-- Configure `MONGODB_URI`, `JWT_SECRET`, `CORS_ORIGINS`, and `SERVER_PORT`.
-- Set CORS to the exact production frontend origin.
-- Use HTTPS and a persistent production database.
+Deploy the Spring Boot `backend` directory to a Java-compatible host such as Render, Railway or Fly.io. Configure these environment variables in the provider dashboard:
 
-### React frontend
-- Import the repository into Vercel.
-- Set the root directory to `frontend`.
+- `SUPABASE_JDBC_URL`
+- `SUPABASE_DB_USER`
+- `SUPABASE_DB_PASSWORD`
+- `JWT_SECRET`
+- `CORS_ORIGINS` (the exact Vercel frontend URL)
+- `SERVER_PORT` (if required by the provider)
+
+Use the Supabase session pooler values and SSL. Never commit secrets or put the database password in frontend variables.
+
+### Frontend on Vercel
+
+- Import the GitHub repository.
+- Set Root Directory to `frontend`.
 - Build command: `npm run build`.
 - Output directory: `dist`.
-- Set `VITE_API_BASE_URL` to the deployed backend API URL.
+- Set `VITE_API_BASE_URL` to your deployed Spring Boot API URL ending in `/api/v1`.
 
-## 10. Troubleshooting
+## 10. Existing MongoDB data
 
-### Backend cannot connect to MongoDB
-- Confirm MongoDB is running.
-- Check the connection string and database credentials.
-- For Atlas, check Network Access and database-user permissions.
-- URL-encode special characters in the password.
+Changing the application code does not migrate existing MongoDB documents. If your old MongoDB database contains users or reports that must be retained, export them and import them into the matching PostgreSQL tables before switching the live backend. Map MongoDB report `location.coordinates[0]` to `longitude` and `location.coordinates[1]` to `latitude`. Preserve user UUIDs only if they are valid UUID strings; otherwise generate UUIDs and update report `reported_by` references accordingly.
 
-### CORS error
-- Set `CORS_ORIGINS` to the exact frontend origin.
-- Restart the backend after changing environment variables.
-- Do not use wildcard CORS with credentialed requests.
+## 11. Troubleshooting
 
-### Frontend says network error
-- Confirm the backend is running on port 8080.
-- Check `VITE_API_BASE_URL`.
-- Restart Vite after changing `.env`.
+**Connection refused / timeout**
+- Verify the pooler host, port, database and username copied from Supabase.
+- Confirm the database password is correct.
+- Use the session pooler and `sslmode=require`.
 
-### Map tiles do not load
-- Check internet access.
-- Check browser console for tile-provider errors.
-- Follow the tile provider's usage policy. For a production service with significant traffic, use a suitable hosted tile provider or operate your own infrastructure.
+**Authentication failed**
+- Supabase pooler usernames commonly include the project reference, for example `postgres.YOUR_PROJECT_REF`. Use the exact dashboard value.
 
-### JWT invalid or expired
-- Log in again to receive a new token.
-- Ensure frontend and backend use the same API host.
-- Replace the development JWT secret with a stable secret.
+**CORS error**
+- Set `CORS_ORIGINS` to the exact deployed frontend origin and restart the backend.
 
-## 11. Current MVP limitations
+**Frontend network error**
+- Confirm the backend is running and `VITE_API_BASE_URL` points to it.
 
-This starter currently includes account registration/login, report creation/listing, geospatial nearby search, map display, and basic admin verification. It does not yet implement a full production route planner, image upload pipeline, AI classification, push notifications, report comments/voting, or password reset. Add and test these capabilities before advertising them to real users.
+**Admin page is forbidden**
+- Promote the account in SQL Editor, then log out and log back in.
 
-## 12. Before public launch
+## 12. Security and production checklist
 
-- [ ] Replace development secrets.
-- [ ] Configure HTTPS and exact CORS origins.
-- [ ] Add rate limiting and abuse prevention.
-- [ ] Add email verification and password recovery.
-- [ ] Add secure refresh-token rotation and revocation.
-- [ ] Add image storage with file validation and metadata stripping.
-- [ ] Add automated tests and CI.
-- [ ] Add monitoring, backups, and incident response.
-- [ ] Publish privacy policy and terms.
-- [ ] Clearly label community-reported information and its age.
-- [ ] Validate route-risk calculations with real-world data before public use.
-
-
-## Tamil Nadu configuration notes
-
-- The frontend includes the 38 Tamil Nadu district names in the district selector.
-- The statewide map opens at a Tamil Nadu overview; selecting a district zooms to its approximate map centre.
-- New reports include the selected district and `Tamil Nadu` in the existing `address` field, so no MongoDB migration is needed.
-- Hazard categories are stored as strings by the current backend. Existing reports using older category names remain readable.
-- District coordinates are approximate map-centre presets, not official administrative boundary data. Users should use the browser location button or correct coordinates for precise reports.
-- This is a community information tool, not an official government reporting channel. Verify hazards and contact the appropriate local authority for urgent issues.
-
-
-## Animation and interaction updates
-
-The frontend now includes scroll-triggered reveal transitions, staggered report rows, a gently animated hero/orbit illustration, interactive hover lift and glow effects for cards, animated navigation underlines, button sheen feedback, form focus transitions, and page-entry motion. These effects are written in CSS and the browser Intersection Observer API, so no animation package or additional dependency is required. The interface also respects the operating system **Reduce motion** accessibility preference.
-
-
-## JavaScript frontend
-
-The frontend uses JavaScript and JSX (not TypeScript). The Vite production build runs with `npm run build` and does not require a TypeScript compiler. For Vercel, set the project root to `frontend`, the build command to `npm run build`, and the output directory to `dist`. The included `vercel.json` provides SPA fallback routing for React Router.
+- [ ] Rotate development secrets and use a strong JWT secret.
+- [ ] Keep Supabase database credentials on the backend only.
+- [ ] Use HTTPS and exact CORS origins.
+- [ ] Configure database backups and monitoring.
+- [ ] Add rate limiting, email verification and password recovery.
+- [ ] Add audit logging and abuse prevention.
+- [ ] Publish privacy information and explain that reports are community supplied.

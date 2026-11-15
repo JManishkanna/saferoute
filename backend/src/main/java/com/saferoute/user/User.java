@@ -1,21 +1,31 @@
 package com.saferoute.user;
 
+import jakarta.persistence.*;
 import java.time.Instant;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.index.Indexed;
-import org.springframework.data.mongodb.core.mapping.Document;
+import java.util.UUID;
 
-@Document("users")
+@Entity
+@Table(name = "users", indexes = @Index(name = "idx_users_email", columnList = "email", unique = true))
 public class User {
-    @Id private String id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+    @Column(nullable = false, length = 80)
     private String name;
-    @Indexed(unique = true) private String email;
+    @Column(nullable = false, unique = true, length = 254)
+    private String email;
+    @Column(name = "password_hash", nullable = false, length = 100)
     private String passwordHash;
+    @Column(nullable = false, length = 20)
     private String role = "USER";
+    @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
+    @PrePersist
+    void onCreate() { if (createdAt == null) createdAt = Instant.now(); }
+
+    public String getId() { return id == null ? null : id.toString(); }
+    public void setId(String id) { this.id = id == null ? null : UUID.fromString(id); }
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
     public String getEmail() { return email; }

@@ -2,9 +2,9 @@ package com.saferoute.admin;
 
 import com.saferoute.report.Report;
 import com.saferoute.report.ReportRepository;
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -28,10 +28,14 @@ public class AdminController {
     public Report resolve(@PathVariable String id) { return update(id, "RESOLVED"); }
 
     private Report update(String id, String status) {
-        Report r = reports.findById(id).orElseThrow(() ->
+        UUID reportId;
+        try { reportId = UUID.fromString(id); }
+        catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Report not found");
+        }
+        Report r = reports.findById(reportId).orElseThrow(() ->
             new ResponseStatusException(HttpStatus.NOT_FOUND, "Report not found"));
         r.setStatus(status);
-        r.setUpdatedAt(Instant.now());
         return reports.save(r);
     }
 

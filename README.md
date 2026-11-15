@@ -2,84 +2,67 @@
 
 SafeRoute Tamil Nadu is a community-powered road hazard reporting and route-awareness platform localized for all 38 districts of Tamil Nadu. The interface includes Tamil and English labels, district-aware reporting, and a statewide map view.
 
-This repository contains a runnable MVP built with:
+## Technology
 
 - React + Vite + JavaScript
 - Java 21 + Spring Boot 3
-- MongoDB Atlas or local MongoDB
+- **Supabase PostgreSQL** database (via Spring Data JPA)
 - OpenStreetMap tiles through Leaflet
 - JWT authentication
-- Geospatial nearby-hazard search
+- Haversine-based nearby-hazard search
 
 ## MVP features
 
 - Register and log in
 - Create road hazard reports with coordinates
 - Browse and filter reports
-- Find nearby reports using MongoDB geospatial queries
+- Find nearby reports using latitude/longitude distance calculations
 - View reports on an interactive Tamil Nadu map with district selection and district-level zoom
-- Select one of Tamil Nadu’s 38 districts while submitting a report; the district is stored in the existing address field
-- Tamil Nadu-focused hazard categories: waterlogging, open manholes, fallen trees, stray cattle, roadwork, potholes, damaged roads, streetlights, signals and blockages
+- Select one of Tamil Nadu’s 38 districts while submitting a report
+- Tamil Nadu-focused hazard categories
 - Basic admin moderation endpoints
 - Responsive dashboard UI
-
-## Important scope note
-
-This is a working MVP foundation, not a certified navigation or emergency-response system. Route risk scoring, live authority integrations, AI image classification, push notifications, and production-grade moderation workflows are extension points, not represented as completed features. Report data is community supplied and must not be interpreted as a guarantee that a route is safe.
 
 ## Repository layout
 
 ```text
 SafeRoute/
-├── backend/          Spring Boot REST API
-├── frontend/         React + JavaScript web app
-├── README.md         Project overview
-└── RUNNING_GUIDE.md  Detailed setup and run instructions
+├── backend/                 Spring Boot REST API
+│   └── database/
+│       └── supabase-schema.sql
+├── frontend/                React + JavaScript web app
+├── README.md
+└── RUNNING_GUIDE.md
 ```
 
 ## Quick start
 
-1. Install Java 21+, Maven 3.9+, Node.js 20+, and MongoDB.
-2. Start MongoDB locally or create a MongoDB Atlas database.
-3. Configure `backend/.env` using `backend/.env.example` (or set environment variables).
-4. Run backend: `cd backend && mvn spring-boot:run`
-5. Run frontend in another terminal: `cd frontend && npm install && npm run dev`
-6. Open http://localhost:5173
+1. Install Java 21+, Maven 3.9+, and Node.js 20+.
+2. Create a Supabase project and run `backend/database/supabase-schema.sql` in the Supabase SQL Editor.
+3. Configure `backend/.env` using `backend/.env.example`.
+4. Run backend: `cd backend && mvn spring-boot:run`.
+5. Run frontend in another terminal: `cd frontend && npm install && npm run dev`.
+6. Open http://localhost:5173.
 
-Read [RUNNING_GUIDE.md](RUNNING_GUIDE.md) for complete setup, environment variables, API examples, and troubleshooting.
+See [RUNNING_GUIDE.md](RUNNING_GUIDE.md) for the full Supabase setup.
 
 ## Default development configuration
 
 - Backend: `http://localhost:8080`
 - Frontend: `http://localhost:5173`
 - API prefix: `/api/v1`
-- MongoDB database: `saferoute`
+- Database: Supabase PostgreSQL
 
-No default admin account is created. Register a user, then promote that user to `ADMIN` directly in the database for local development only. See the running guide.
+No default admin account is created. Register a user, then promote that user to `ADMIN` using the SQL Editor as described in the running guide.
 
-## Security before public deployment
+## Important scope and security notes
 
+This is a working MVP foundation, not a certified navigation or emergency-response system. Community-submitted reports are not a guarantee that a route is safe.
+
+- Keep the Supabase database password on the backend only. Never use it in a `VITE_*` variable.
 - Set a long random `JWT_SECRET` (at least 32 bytes).
-- Restrict MongoDB network access to the backend host.
-- Use HTTPS.
-- Configure exact CORS origins.
-- Add email verification, password reset, refresh-token rotation, rate limiting, audit logging, and abuse reporting.
-- Use a managed image-storage provider rather than accepting arbitrary external image URLs.
-- Do not store secrets in frontend environment variables.
-- Add privacy notices and explicit location permission handling.
-
-## Tamil Nadu localization
-
-The frontend ships with a 38-district selector, approximate district map-centre presets, a statewide overview map, district and hazard filters, Tamil/English interface labels, and Tamil Nadu-focused road hazard categories. The backend category allow-list has been updated to accept these categories. No MongoDB migration is required because reports already store category and address as strings.
-
-District names are appended to the report address for compatibility with the existing data model. Approximate district-centre coordinates are convenience defaults only; use the browser location control or manually correct the coordinates before submitting a report. This is not an official government service or certified navigation system.
-
-
-## Animation and interaction updates
-
-The frontend now includes scroll-triggered reveal transitions, staggered report rows, a gently animated hero/orbit illustration, interactive hover lift and glow effects for cards, animated navigation underlines, button sheen feedback, form focus transitions, and page-entry motion. These effects are written in CSS and the browser Intersection Observer API, so no animation package or additional dependency is required. The interface also respects the operating system **Reduce motion** accessibility preference.
-
-
-## JavaScript frontend
-
-The frontend uses JavaScript and JSX (not TypeScript). The Vite production build runs with `npm run build` and does not require a TypeScript compiler. For Vercel, set the project root to `frontend`, the build command to `npm run build`, and the output directory to `dist`. The included `vercel.json` provides SPA fallback routing for React Router.
+- Use the Supabase session pooler connection string with SSL for typical hosted deployments.
+- Configure exact CORS origins and HTTPS.
+- The Spring Boot API connects directly to PostgreSQL; Supabase Auth and the Supabase Data API are not used by this JWT-based MVP.
+- Existing MongoDB records are not automatically copied. Export/import existing users and reports before switching production traffic.
+- Add email verification, password reset, rate limiting, audit logging, backups, and abuse reporting before public launch.
