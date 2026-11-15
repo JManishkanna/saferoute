@@ -1,29 +1,57 @@
 package com.saferoute.report;
 
+import jakarta.persistence.*;
 import java.time.Instant;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.geo.GeoJsonPoint;
-import org.springframework.data.mongodb.core.index.GeoSpatialIndexType;
-import org.springframework.data.mongodb.core.index.GeoSpatialIndexed;
-import org.springframework.data.mongodb.core.mapping.Document;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
-@Document("reports")
+@Entity
+@Table(name = "reports", indexes = {
+    @Index(name = "idx_reports_created_at", columnList = "created_at"),
+    @Index(name = "idx_reports_status_created", columnList = "status, created_at")
+})
 public class Report {
-    @Id private String id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+
+    @Column(nullable = false, length = 120)
     private String title;
+    @Column(nullable = false, length = 2000)
     private String description;
+    @Column(nullable = false, length = 40)
     private String category;
+    @Column(nullable = false, length = 20)
     private String severity;
-    @GeoSpatialIndexed(type = GeoSpatialIndexType.GEO_2DSPHERE)
-    private GeoJsonPoint location;
+    @Column(nullable = false)
+    private double latitude;
+    @Column(nullable = false)
+    private double longitude;
+    @Column(length = 200)
     private String address;
+    @Column(name = "reported_by", nullable = false, length = 36)
     private String reportedBy;
+    @Column(nullable = false, length = 20)
     private String status = "PENDING";
+    @Column(name = "verification_count", nullable = false)
     private int verificationCount = 0;
+    @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
+    @Column(name = "updated_at", nullable = false)
     private Instant updatedAt = Instant.now();
 
-    public String getId() { return id; }
+    @PrePersist
+    void onCreate() {
+        Instant now = Instant.now();
+        if (createdAt == null) createdAt = now;
+        updatedAt = now;
+    }
+
+    @PreUpdate
+    void onUpdate() { updatedAt = Instant.now(); }
+
+    public String getId() { return id == null ? null : id.toString(); }
     public String getTitle() { return title; }
     public void setTitle(String v) { title = v; }
     public String getDescription() { return description; }
@@ -32,8 +60,14 @@ public class Report {
     public void setCategory(String v) { category = v; }
     public String getSeverity() { return severity; }
     public void setSeverity(String v) { severity = v; }
-    public GeoJsonPoint getLocation() { return location; }
-    public void setLocation(GeoJsonPoint v) { location = v; }
+    public double getLatitude() { return latitude; }
+    public void setLatitude(double v) { latitude = v; }
+    public double getLongitude() { return longitude; }
+    public void setLongitude(double v) { longitude = v; }
+    // Keep the existing frontend GeoJSON response shape during the database migration.
+    public Map<String, Object> getLocation() {
+        return Map.of("type", "Point", "coordinates", List.of(longitude, latitude));
+    }
     public String getAddress() { return address; }
     public void setAddress(String v) { address = v; }
     public String getReportedBy() { return reportedBy; }
